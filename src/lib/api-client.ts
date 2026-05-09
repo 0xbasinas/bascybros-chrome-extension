@@ -1,4 +1,4 @@
-const BRIDGE_URL = process.env.PLASMO_PUBLIC_BRIDGE_URL ?? "http://localhost:8787"
+const BRIDGE_URL = getBridgeBaseUrl()
 
 interface ApiResult {
   ok: boolean
@@ -7,6 +7,21 @@ interface ApiResult {
   results?: Array<{ id: string; title: string; type: string }>
   status?: string
   db?: string
+}
+
+function getBridgeBaseUrl() {
+  const raw = (process.env.PLASMO_PUBLIC_BRIDGE_URL ?? "http://localhost:8787").trim()
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error("PLASMO_PUBLIC_BRIDGE_URL is not a valid URL")
+  }
+  const isLocalhost = url.hostname === "localhost" || url.hostname === "127.0.0.1"
+  if (!isLocalhost && url.protocol !== "https:") {
+    throw new Error("PLASMO_PUBLIC_BRIDGE_URL must use https outside localhost")
+  }
+  return url.toString().replace(/\/$/, "")
 }
 
 async function fetchBridge<T = ApiResult>(path: string, options: RequestInit = {}): Promise<T> {

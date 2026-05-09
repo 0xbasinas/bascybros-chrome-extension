@@ -147,7 +147,7 @@ async function takeScreenshot(token: string, tab: chrome.tabs.Tab) {
 
 interface BridgeMessage {
   type: "CREATE_NOTE" | "CREATE_RESOURCE" | "CREATE_COMMAND"
-    | "CREATE_SNIPPET" | "CREATE_TASK" | "SEARCH" | "APPEND_NOTE"
+    | "CREATE_SNIPPET" | "CREATE_TASK" | "SEARCH" | "APPEND_NOTE" | "GET_TOKEN"
   payload?: unknown
 }
 
@@ -178,6 +178,7 @@ function parseBridgeMessage(input: unknown): BridgeMessage | null {
     "CREATE_TASK",
     "SEARCH",
     "APPEND_NOTE",
+    "GET_TOKEN",
   ]
   if (typeof message.type !== "string" || !allowedTypes.includes(message.type as BridgeMessage["type"])) {
     return null
@@ -189,6 +190,8 @@ async function handleMessage(message: BridgeMessage) {
   const token = await getToken()
 
   switch (message.type) {
+    case "GET_TOKEN":
+      return { ok: true, token }
     case "CREATE_NOTE": return token ? apiClient.createNote(token, message.payload as any) : { ok: false, message: "Not authenticated" }
     case "CREATE_RESOURCE": return token ? apiClient.createResource(token, message.payload as any) : { ok: false, message: "Not authenticated" }
     case "CREATE_COMMAND": return token ? apiClient.createCommand(token, message.payload as any) : { ok: false, message: "Not authenticated" }
