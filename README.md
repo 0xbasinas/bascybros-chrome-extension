@@ -1,33 +1,68 @@
-This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+# BascyBros Chrome Extension
 
-## Getting Started
+[Plasmo](https://docs.plasmo.com/) Manifest V3 extension that captures cybersecurity notes, shell commands, URLs, snippets, tasks, and screenshots from the browser into your [BascyBros](https://github.com/0xbasinas/bascybros) workspace.
 
-First, run the development server:
+Authenticated via [Clerk for Chrome extensions](https://clerk.com/docs/quickstarts/chrome-extension). API calls go to the [bridge server](https://github.com/0xbasinas/bascybros_bridge_server), not the Next.js app directly.
+
+## Related repos
+
+| Repo | Role |
+|------|------|
+| [bascybros_bridge_server](https://github.com/0xbasinas/bascybros_bridge_server) | REST + WebSocket backend for this extension |
+| [bascybros](https://github.com/0xbasinas/bascybros) | Web dashboard |
+| [bascybrosmobile](https://github.com/0xbasinas/bascybrosmobile) | Mobile companion (Next.js APIs) |
+
+## Setup
+
+1. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Create local env files (gitignored; do not commit private keys). Typical variables:
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `PLASMO_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+   | `PLASMO_PUBLIC_CLERK_SYNC_HOST` | Clerk sync host for extension auth |
+   | `PLASMO_PUBLIC_BRIDGE_URL` | Bridge API origin (default `http://localhost:8787`) |
+
+   Plasmo manifest placeholders (`$CRX_PUBLIC_KEY`, `$CLERK_FRONTEND_API`, etc.) are documented in `package.json` under `manifest`.
+
+3. Start the [bridge server](https://github.com/0xbasinas/bascybros_bridge_server), then run the extension:
+
+   ```bash
+   pnpm dev
+   ```
+
+   Load `build/chrome-mv3-dev` in Chrome (Extensions → Developer mode → Load unpacked).
+
+## Scripts
 
 ```bash
-pnpm dev
-# or
-npm run dev
+pnpm dev            # plasmo dev
+pnpm build          # production build
+pnpm build:chrome   # chrome-mv3 target
+pnpm build:firefox  # firefox-mv3 target
+pnpm package        # zip for store upload
+pnpm typecheck
 ```
 
-Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
-
-You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
-
-For further guidance, [visit our Documentation](https://docs.plasmo.com/)
-
-## Making production build
-
-Run the following:
+## Production build
 
 ```bash
 pnpm build
-# or
-npm run build
 ```
 
-This should create a production bundle for your extension, ready to be zipped and published to the stores.
+Output is under `build/` (e.g. `chrome-mv3-prod.zip` after packaging).
 
-## Submit to the webstores
+## Store submission
 
-The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+The repo includes `.github/workflows/submit.yml` for [Browser Platform Publish](https://bpp.browser.market) using the `SUBMIT_KEYS` repository secret. See [Plasmo submit docs](https://docs.plasmo.com/framework/workflows/submit) for first-time store setup.
+
+## Development
+
+Edit the popup in `src/popup.tsx`. The service worker (`src/background.ts`) handles context menus, keyboard shortcuts, screenshots, and bridge API calls. Content scripts target common security-learning sites (TryHackMe, HTB, PortSwigger, etc.).
+
+For more Plasmo guidance, see the [Plasmo documentation](https://docs.plasmo.com/).
