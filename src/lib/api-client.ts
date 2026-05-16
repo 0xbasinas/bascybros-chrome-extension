@@ -1,4 +1,7 @@
+import { createClientRateLimiter, parseRetryAfterSeconds } from "~lib/client-rate-limit"
+
 const BRIDGE_URL = getBridgeBaseUrl()
+const bridgeRateLimiter = createClientRateLimiter()
 
 interface ApiResult {
   ok: boolean
@@ -28,6 +31,8 @@ async function fetchBridge<T = ApiResult>(path: string, options: RequestInit = {
   const token = await getBridgeToken()
   if (!token) throw new Error("Not authenticated")
 
+  await bridgeRateLimiter.acquire()
+
   const res = await fetch(`${BRIDGE_URL}${path}`, {
     ...options,
     headers: {
@@ -38,7 +43,18 @@ async function fetchBridge<T = ApiResult>(path: string, options: RequestInit = {
   })
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: "Request failed" }))
+    const body = (await res.json().catch(() => ({ message: "Request failed" }))) as {
+      message?: string
+      retryAfter?: number
+    }
+    if (res.status === 429) {
+      const retryAfter = parseRetryAfterSeconds(res, body)
+      const suffix = retryAfter ? ` Try again in ${retryAfter}s.` : ""
+      return {
+        ok: false,
+        message: `${body.message ?? "Too many requests."}${suffix}`,
+      } as T
+    }
     return { ok: false, message: body.message ?? `HTTP ${res.status}` } as T
   }
 
